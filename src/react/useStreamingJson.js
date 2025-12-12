@@ -32,11 +32,6 @@ export function useStreamingJson(rawString, options = {}) {
   const { repairJson } = useAIGuard();
   
   const processingRef = useRef(false);
-  const latestStringRef = useRef(rawString);
-
-  useEffect(() => {
-    latestStringRef.current = rawString;
-  }, [rawString]);
 
   useEffect(() => {
     if (!rawString) return;
