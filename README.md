@@ -24,6 +24,10 @@ The first React hook with native support for DeepSeek-R1 and OpenAI o1 reasoning
 
 ```bash
 npm install react-ai-guard
+# or
+yarn add react-ai-guard
+# or
+pnpm add react-ai-guard
 ```
 
 ## The Problem
