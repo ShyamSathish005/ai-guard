@@ -18,89 +18,30 @@ const { data } = useStreamingJson(stream, {
 });
 ```
 
-**The first React hook with native support for DeepSeek-R1 and OpenAI o1 reasoning traces.**
-
----
+The first React hook with native support for DeepSeek-R1 and OpenAI o1 reasoning traces.
 
 ## Installation
 
 ```bash
 npm install react-ai-guard
 ```
-
----
-
-## Architecture
-
-```mermaid
-graph LR
-    A[Raw Stream Input] --> B{Extract Mode?}
-    B -- Yes --> C[Strip &lt;think&gt; / Markdown]
-    B -- No --> D[Raw Text]
-    C --> E[Find JSON Boundaries]
-    E --> F[Repair Engine - Stack Machine]
-    D --> F
-    F --> G[Validator - Zod]
-    G -- Valid --> H[Update UI]
-    G -- Invalid --> I[Stub/Partial Data]
-```
-
-- **Singleton Worker**: A single Web Worker instance shared across all components
-- **Message Queue**: Promise-based queue preventing race conditions
-- **SSR Safe**: Hydration-safe hooks with server fallbacks
-- **Zero Dependencies**: Pure JavaScript, no runtime deps
-
-### Hybrid Build Architecture
-
-v1.3.0 introduces a dual-strategy build system:
-
-```mermaid
-graph TD
-    Build[Source Code] -->|Tree Shake| Pure[useAIGuard.js (7KB)]
-    Build -->|Compile C| Pro[useAIGuardPro.js (11KB)]
-    
-    Pure -->|Default| Browser[Lightweight Client]
-    Pro -->|Heavy Data| PowerUser[Data Intensive App]
-```
-
-- **Default (Pure JS)**: Standard Bundle. Fast, easy debugging, no Wasm overhead.
-- **Pro (C/Wasm)**: High-performance kernel for massive streams (>1MB/s). Opt-in via `import .../useAIGuardPro`.
-
----
 
 ## The Problem
 
 Integrating streaming LLM responses into React applications introduces three critical risks:
 
-1. **Application Crashes**: `JSON.parse()` fails when processing partial or malformed JSON chunks typical of streaming responses. This often leads to white screens or extensive try/catch boilerplate.
-
-2. **Data Exfiltration**: Users may inadvertently paste sensitive information (PII, API keys) into prompts, which are then sent to third-party model providers.
-
-3. **Reasoning Model Noise**: Models like DeepSeek-R1 and o1 output `<think>` traces or prose before JSON, breaking naive parsers.
-
----
+*   **Application Crashes**: `JSON.parse()` fails when processing partial or malformed JSON chunks typical of streaming responses. This often leads to white screens or extensive try/catch boilerplate.
+*   **Data Exfiltration**: Users may inadvertently paste sensitive information (PII, API keys) into prompts, which are then sent to third-party model providers.
+*   **Reasoning Model Noise**: Models like DeepSeek-R1 and o1 output `<think>` traces or prose before JSON, breaking naive parsers.
 
 ## The Solution
 
 `react-ai-guard` acts as a middleware between the user/LLM and your application state.
 
-- **Deterministic JSON Repair**: Utilizes a stack-based finite state machine to auto-close brackets, quotes, and structural errors in real-time. It transforms broken streams (e.g., `{"data": {"nam`) into valid JavaScript objects.
-
-- **Reasoning Model Extraction**: Strips `<think>` tags, markdown code blocks, and prose to extract clean JSON from verbose model outputs.
-
-- **Client-Side Firewall**: Scans input text for sensitive patterns (Credit Cards, SSNs, API Keys, JWTs) using a background thread before the network request is initiated.
-
-- **Main Thread Isolation**: All heavy computation (regex scanning, recursive parsing) is offloaded to a Web Worker, ensuring the UI thread remains unblocked.
-
----
-
-## Installation
-
-```bash
-npm install react-ai-guard
-```
-
----
+*   **Deterministic JSON Repair**: Utilizes a stack-based finite state machine to auto-close brackets, quotes, and structural errors in real-time. It transforms broken streams (e.g., `{"data": {"nam`) into valid JavaScript objects.
+*   **Reasoning Model Extraction**: Strips `<think>` tags, markdown code blocks, and prose to extract clean JSON from verbose model outputs.
+*   **Client-Side Firewall**: Scans input text for sensitive patterns (Credit Cards, SSNs, API Keys, JWTs) using a background thread before the network request is initiated.
+*   **Main Thread Isolation**: All heavy computation (regex scanning, recursive parsing) is offloaded to a Web Worker, ensuring the UI thread remains unblocked.
 
 ## Usage
 
@@ -127,7 +68,7 @@ const ChatComponent = ({ rawStream }) => {
 
 ### 2. Reasoning Model Support (DeepSeek-R1, o1)
 
-For models that output thinking traces before JSON, enable `extract` mode:
+For models that output thinking traces before JSON, enable extract mode:
 
 ```javascript
 import { useStreamingJson } from 'react-ai-guard';
@@ -175,7 +116,7 @@ const UserSchema = z.object({
 const Dashboard = ({ stream }) => {
   const { data, isSchemaValid, schemaErrors, isComplete } = useStreamingJson(stream, { 
     schema: UserSchema,
-    stubFromSchema: true,           // Pre-fill skeleton for optimistic UI
+    stubFromSchema: true,            // Pre-fill skeleton for optimistic UI
     onComplete: (data) => save(data),
     onValidationFail: (errors) => console.warn(errors)
   });
@@ -221,28 +162,12 @@ const InputForm = () => {
 };
 ```
 
----
-
-## Architecture
-
-This library is designed for high-performance frontend environments.
-
-- **Singleton Worker**: A single Web Worker instance is spawned upon the first hook usage and shared across all components to conserve memory.
-
-- **Message Queue**: Requests are serialized and processed via a promise-based message queue, preventing race conditions during rapid state updates.
-
-- **SSR Safe**: Hydration-safe hooks that return fallback values on server render.
-
-- **No External Dependencies**: The core parsing and scanning logic is written in pure JavaScript with zero runtime dependencies.
-
----
-
 ## API Reference
 
 ### useStreamingJson(rawString, options)
 
 | Parameter | Type | Description |
-|-----------|------|-------------|
+| :--- | :--- | :--- |
 | `rawString` | `string` | The raw text chunk received from the LLM stream. |
 | `options.fallback` | `object` | Initial state before parsing begins (default: `{}`). |
 | `options.schema` | `ZodSchema` | Optional schema to validate the parsed data against. |
@@ -256,52 +181,46 @@ This library is designed for high-performance frontend environments.
 **Returns:**
 
 | Property | Type | Description |
-|----------|------|-------------|
+| :--- | :--- | :--- |
 | `data` | `object` | The repaired, valid JSON object. |
 | `isValid` | `boolean` | Indicates if the current chunk is syntactically valid JSON. |
 | `isSchemaValid` | `boolean` | Indicates if data passes the provided schema. |
 | `schemaErrors` | `array` | Array of error objects returned by the schema validator. |
 | `isComplete` | `boolean` | True when stream is finished and validated. |
 
----
-
 ### useVercelStream(messages, options)
 
 Adapter for Vercel AI SDK's `useChat()` hook.
 
 | Parameter | Type | Description |
-|-----------|------|-------------|
+| :--- | :--- | :--- |
 | `messages` | `array` | Messages array from `useChat()`. |
 | `options` | `object` | Same options as `useStreamingJson`. |
 
 **Returns:**
 
 | Property | Type | Description |
-|----------|------|-------------|
-| `object` | `object` | Alias for `data` (matches Vercel naming). |
+| :--- | :--- | :--- |
+| `object` | `object` | Alias for data (matches Vercel naming). |
 | `isStreaming` | `boolean` | True while stream is in progress. |
 | `...rest` | | All properties from `useStreamingJson`. |
-
----
 
 ### useAIGuard(config)
 
 | Option | Type | Default | Description |
-|--------|------|---------|-------------|
+| :--- | :--- | :--- | :--- |
 | `rules` | `string[]` | All | Array of rule IDs to enable (e.g., `['CREDIT_CARD', 'API_KEY']`). |
 | `redact` | `boolean` | `false` | If true, returns a redacted string instead of just blocking. |
-| `allow` | `(string\|RegExp)[]` | `[]` | Patterns to whitelist (exceptions). |
-| `customRules` | `object[]` | `[]` | Custom rules: `[{ name: 'CUSTOM', pattern: /.../ }]` |
+| `allow` | `(string\|RegExp)[]` | | Patterns to whitelist (exceptions). |
+| `customRules` | `object[][]` | | Custom rules: `[{ name: 'CUSTOM', pattern: /.../ }]` |
 
 **Returns:**
 
 | Method | Signature | Description |
-|--------|-----------|-------------|
+| :--- | :--- | :--- |
 | `scanInput` | `(text: string) => Promise<ScanResult>` | Scans text for PII. Returns `{ safe, findings, text }`. |
-| `repairJson` | `(text: string, options?) => Promise<RepairResult>` | Repairs JSON. `options.extract` strips reasoning traces. |
+| `repairJson` | `(text: string, options?) => Promise<RepairResult>` | Repairs JSON. options.extract strips reasoning traces. |
 | `extractJson` | `(text: string) => Promise<{extracted: string}>` | Extract JSON from reasoning model output. |
-
----
 
 ### Direct Utilities
 
@@ -320,12 +239,10 @@ const fixed = repairJSON('{"incomplete": true');
 const result = scanText('Email: test@example.com', ['EMAIL']);
 ```
 
----
-
-## Supported PII Rules
+### Supported PII Rules
 
 | Rule ID | Description |
-|---------|-------------|
+| :--- | :--- |
 | `CREDIT_CARD` | Major credit card number formats (Visa, Mastercard, Amex). |
 | `EMAIL` | Standard email address patterns. |
 | `API_KEY` | High-entropy strings resembling API tokens (e.g., `sk-`, `ghp-`). |
@@ -334,18 +251,13 @@ const result = scanText('Email: test@example.com', ['EMAIL']);
 | `AWS_KEY` | AWS Access Key IDs (AKIA...). |
 | `JWT` | JSON Web Tokens. |
 
----
-
 ## Demo
-### Feature 1: Auto-Repairing Broken Streams
+
+**Feature 1: Auto-Repairing Broken Streams**
+
 Standard `JSON.parse` crashes when the stream cuts off. We fix it in real-time.
 
 <video src="https://github.com/user-attachments/assets/80ce21fb-8017-4c48-b803-1813fcc1c369" controls="false" autoplay="true" loop="true" width="100%"></video>
-
-
-
-
-
 
 ## License
 
