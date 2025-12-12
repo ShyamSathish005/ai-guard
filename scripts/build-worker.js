@@ -117,14 +117,21 @@ function getWorker() {
     const { id, success, payload, error } = e.data;
     const req = pendingRequests.get(id);
     if (req) {
+      clearTimeout(req.timeout);
       if (success) req.resolve(payload);
       else req.reject(new Error(error));
       pendingRequests.delete(id);
     }
   };
 
+  // Handle worker errors (reject all pending requests)
   sharedWorker.onerror = (err) => {
     console.error('[react-ai-guard] Worker error:', err);
+    pendingRequests.forEach((req, id) => {
+      clearTimeout(req.timeout);
+      req.reject(new Error('Worker error: ' + (err.message || 'Unknown')));
+      pendingRequests.delete(id);
+    });
   };
 
   return sharedWorker;
@@ -141,11 +148,17 @@ export function useAIGuard(config = {}) {
 
   const post = useCallback((type, payload, options) => {
     const worker = getWorker();
-    if (!worker) return Promise.reject("Worker not initialized");
+    if (!worker) return Promise.reject(new Error("Worker not initialized"));
 
     const id = crypto.randomUUID();
     return new Promise((resolve, reject) => {
-      pendingRequests.set(id, { resolve, reject });
+      // Timeout: reject if worker doesn't respond in 30s (prevents memory leak)
+      const timeout = setTimeout(() => {
+        pendingRequests.delete(id);
+        reject(new Error('Worker timeout (30s)'));
+      }, 30000);
+      
+      pendingRequests.set(id, { resolve, reject, timeout });
       worker.postMessage({ id, type, payload, options });
     });
   }, []);

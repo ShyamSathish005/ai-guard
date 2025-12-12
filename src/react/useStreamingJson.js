@@ -31,17 +31,21 @@ export function useStreamingJson(rawString, options = {}) {
   
   const { repairJson } = useAIGuard();
   
-  const processingRef = useRef(false);
+  // Track the latest request to discard stale responses
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     if (!rawString) return;
 
+    // Increment request ID - any response with older ID is stale
+    const currentRequestId = ++requestIdRef.current;
+
     const process = async () => {
-      if (processingRef.current) return;
-      
-      processingRef.current = true;
       try {
         const result = await repairJson(rawString);
+        
+        // Discard stale response (newer request already in flight)
+        if (currentRequestId !== requestIdRef.current) return;
         
         if (result && result.data) {
           let validatedData = result.data;
@@ -77,7 +81,6 @@ export function useStreamingJson(rawString, options = {}) {
                   // Strict mode: reject invalid data, keep previous
                   setSchemaErrors(errors);
                   setIsValid(false);
-                  processingRef.current = false;
                   return;
                 }
               }
@@ -96,9 +99,10 @@ export function useStreamingJson(rawString, options = {}) {
           setSchemaErrors(errors);
         }
       } catch (err) {
-        console.warn("Repair failed", err);
-      } finally {
-        processingRef.current = false;
+        // Only log if this is still the current request
+        if (currentRequestId === requestIdRef.current) {
+          console.warn("Repair failed", err);
+        }
       }
     };
 
