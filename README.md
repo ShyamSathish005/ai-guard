@@ -108,14 +108,6 @@ I refuse to ship a library that blocks the main thread.
 
 ---
 
-## Contributing
-
-1. Do not break the build.
-2. Do not add dependencies. I don't want your 50MB "utility" library. Write the code yourself.
-3. Test your code. If you send a PR without a test case for the bug you fixed, I will close it.
-
----
-
 ## License
 
 MIT
