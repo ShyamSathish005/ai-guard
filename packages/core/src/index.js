@@ -12,3 +12,9 @@ export { useStreamingJson, useTypedStream, useVercelStream } from './react/useSt
 // Core Utilities (for power users and non-React environments)
 export { scanText } from './core/scanner.js';
 export { repairJSON, extractJSON } from './core/repair.js';
+
+// PII Vault - Reversible PII Redaction System
+export { PIIVault } from './features/pii/vault.js';
+
+import { PIIVault as _PIIVault } from './features/pii/vault.js';
+export const createPIIVault = () => new _PIIVault();
