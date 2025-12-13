@@ -1,4 +1,4 @@
-name: CI
+name: CI - React AI Guard
 
 on:
   push:
@@ -7,22 +7,79 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  build-and-test:
+    name: Build & Test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         node-version: [18.x, 20.x]
-
+        
     steps:
-    - uses: actions/checkout@v3
-    - uses: pnpm/action-setup@v2
-      with:
-        version: 8
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'pnpm'
-    - run: pnpm install
-    - run: pnpm -r test
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install Dependencies (Root)
+        # Assuming root lockfile exists. If using workspace, npm ci at root installs all.
+        # If no root lockfile, might fail, but adhering to user request 'Run npm ci in the root'.
+        run: npm ci
+
+      - name: Install Dependencies (Core)
+        # Explicitly install core dependencies if root install doesn't handle them or if monorepo setup varies
+        working-directory: packages/core
+        run: npm ci
+
+      - name: Build Core Package
+        working-directory: packages/core
+        run: node scripts/build-worker.js
+
+      - name: Verify Build Artifacts
+        working-directory: packages/core
+        run: |
+          echo "Verifying build artifacts..."
+          MISSING=0
+          
+          if [ ! -f "dist/index.js" ]; then
+            echo "❌ CHECK FAILED: dist/index.js is missing"
+            MISSING=1
+          else
+            echo "✅ dist/index.js found"
+          fi
+          
+          if [ ! -f "dist/SchemaEngine.js" ]; then
+            echo "❌ CHECK FAILED: dist/SchemaEngine.js is missing"
+            MISSING=1
+          else
+            echo "✅ dist/SchemaEngine.js found"
+          fi
+          
+          if [ ! -f "dist/useGuard.js" ]; then
+            echo "❌ CHECK FAILED: dist/useGuard.js is missing"
+            MISSING=1
+          else
+            echo "✅ dist/useGuard.js found"
+          fi
+          
+          if [ $MISSING -eq 1 ]; then
+            echo "Build verification failed. Missing required artifacts."
+            exit 1
+          fi
+          echo "All artifacts verified successfully."
+
+      - name: Run Unit Tests
+        working-directory: packages/core
+        run: npx vitest run
+
+      - name: Run Fuzz Tests
+        working-directory: packages/core
+        run: npx vitest run test/fuzz.test.js
+
+      - name: Publish Dry Run
+        working-directory: packages/core
+        run: npm publish --dry-run

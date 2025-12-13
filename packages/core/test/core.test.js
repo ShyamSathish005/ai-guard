@@ -11,7 +11,7 @@ I'll format it properly.
 </think>
 
 {"name": "Alice", "age": 30}`;
-    
+
     const result = extractJSON(input);
     expect(result).toBe('{"name": "Alice", "age": 30}');
   });
@@ -24,7 +24,7 @@ I'll format it properly.
 \`\`\`
 
 Let me know if you need anything else!`;
-    
+
     const result = extractJSON(input);
     expect(result).toBe('{"items": ["apple", "banana"]}');
   });
@@ -54,9 +54,9 @@ describe('repairJSON with extract option', () => {
   it('repairs and extracts from reasoning output', () => {
     const input = `<think>planning...</think>{"name": "Test", "incomplete": true`;
     const result = repairJSON(input, { extract: true });
-    expect(result).toContain('"name"');
+    expect(result.fixed).toContain('"name"');
     // Should be parseable
-    expect(() => JSON.parse(result)).not.toThrow();
+    expect(() => JSON.parse(result.fixed)).not.toThrow();
   });
 });
 
@@ -91,9 +91,9 @@ describe('scanText with allow-lists', () => {
   it('redacts with allow-list respected', () => {
     const allowList = ['public@company.com'];
     const result = scanText(
-      'Contact: private@company.com or public@company.com', 
-      ['EMAIL'], 
-      true, 
+      'Contact: private@company.com or public@company.com',
+      ['EMAIL'],
+      true,
       allowList
     );
     expect(result.text).toContain('[EMAIL_REDACTED]');
