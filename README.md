@@ -10,11 +10,6 @@
 
 ---
 
-### 🎥 Streaming De-Identification (Demo)
-> *[Insert your recorded demo.gif here showing the "My secret is sk-ant..." text being redacted in real-time]*
-
----
-
 ## ⚡ v2.0 Architecture
 We have transitioned from a utility library to a **Privacy-First OS**.
 
